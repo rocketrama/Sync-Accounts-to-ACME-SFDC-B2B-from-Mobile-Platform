@@ -1,0 +1,20 @@
+app:
+  name: "accounts-sfdc-sapi"
+  version: "v1"
+  appId: "19393535"
+
+https:  
+  host: "0.0.0.0" 
+  port: "8082"
+  private:   
+    port: "8092"
+  path: "/api/*"
+  timeOut: "30000"
+  idleTimeOut: "40000"
+
+keystore:
+  path: "keystore.jks"
+  alias: "mule-server"
+
+
+  

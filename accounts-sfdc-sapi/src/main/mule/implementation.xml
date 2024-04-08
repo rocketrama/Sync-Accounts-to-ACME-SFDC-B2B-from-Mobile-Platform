@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<flow name="accounts-update-flow" doc:id="f4212151-005f-4732-8da3-1393691b5074" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="3d521f67-2761-4f25-a185-ad1e0aad6771" message="Update Accounts details flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<logger level="DEBUG" doc:name="Log Received Payload" doc:id="b8c0f222-4178-4133-8aa8-080c79c65eb5" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Incoming Payload :  #[payload]"/>
+		<ee:transform doc:name="Map SFDC Get Account Query" doc:id="47262750-6d63-4c1f-bb94-b80c5a1d0e1c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"SELECT Id, Name, BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry, Phone, Fax, AccountNumber, email__c FROM Account WHERE Id='" ++ attributes.uriParams.account_id ++ "'"]]></ee:set-payload>
+
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="payload" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		
+</ee:transform>
+		<logger level="DEBUG" doc:name="Log SFDC Query" doc:id="b2cbe37e-b89e-416c-87de-179177b9d7a6" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Query :  #[payload]"/>
+		<try doc:name="Try" doc:id="ed635d1a-61b6-4ac3-9dcc-f3cc5aa48069" >
+			<salesforce:query doc:name="Query Account Details" doc:id="9b8cea58-439b-4f87-9452-0f750e505da3" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[#[payload]]]></salesforce:salesforce-query>
+		</salesforce:query>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b695f59a-6ef4-4a31-9e5d-3bacdc5d26e2" >
+					<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="1d02b1b4-59a2-44e8-8a1e-2a75859cd31e" name="Error_HandlerSub_Flow" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="DEBUG" doc:name="Log SFDC Query Response" doc:id="ca1e917b-7914-455f-8e87-531aa2b2dee4" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Query Response :  #[%dw 2.0 output application/json --- payload]"/>
+		<choice doc:name="Is Payload Check?" doc:id="218ab28d-24b3-412d-8c56-749c0d2466ef" >
+			<when expression="#[!isEmpty(payload)]">
+				<ee:transform doc:name="Map Response" doc:id="f5a5f3e0-a231-4c1e-92f6-eba990d9cf84">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+[{	
+	Id: payload.Id,
+	Name: vars.payload.name,
+	Phone: vars.payload.phone,
+	Fax: vars.payload.fax,
+	AccountNumber: vars.payload.number,
+	email__c: vars.payload.email as String,
+	BillingStreet: vars.payload.billingAddress.street,
+	BillingCity: vars.payload.billingAddress.city,
+	BillingState: vars.payload.billingAddress.state,
+	BillingPostalCode: vars.payload.billingAddress.postalCode,
+	BillingCountry: vars.payload.billingAddress.countryIso default "India",
+	ShippingStreet: vars.payload.shippingAddress.street,
+	ShippingCity: vars.payload.shippingAddress.city,
+	ShippingState: vars.payload.shippingAddress.state,
+	ShippingPostalCode: vars.payload.shippingAddress.postalCode,
+	ShippingCountry: vars.payload.shippingAddress.countryIso default "India"
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<salesforce:upsert doc:name="Upsert Account" doc:id="36b4695d-9a6d-4727-89ca-274e38b7d19c" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="Id" />
+				<ee:transform doc:name="Map Result Response" doc:id="d9e383bc-92cc-4f31-a610-a96b1aa77390">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.items[0].id reduce ((item,acc)-> acc ++ item) ,
+  status: payload.items[0].statusCode default "200",
+  message: "Account updated successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="DEBUG" doc:name="Log Update Account Details Response" doc:id="1c86b466-2b2a-4f89-9b62-ccbb406449ff" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Update Account Details Response :  #[%dw 2.0 output application/json --- payload]" />
+			</when>
+			<otherwise >
+				<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="5146576c-9244-473c-be67-fd4d85c9581c" name="Error_HandlerSub_Flow"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Flow End" doc:id="3006c7e4-d47a-4acb-abde-ecab126e0025" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Update Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b6e5a9be-01d8-438c-909e-b4f1500e3774" type="SALESFORCE:COMMUNICATION, SALESFORCE:CONNECTIVITY, SALESFORCE:INSUFFICIENT_PERMISSIONS, SALESFORCE:LIMIT_EXCEEDED, SALESFORCE:MUTUAL_AUTHENTICATION_FAILED, SALESFORCE:OPERATION_NOT_SUPPORTED, SALESFORCE:RETRY_EXHAUSTED, SALESFORCE:TIMEOUT, SALESFORCE:UNAVAILABLE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<flow-ref doc:name="global_Error_HandlerSub_Flow" doc:id="7da66bb8-e13c-48c9-a39a-e1b46740cab7" name="Error_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	<flow name="account-create-flow" doc:id="896e8ccf-68c6-43de-8e53-e61f2ec352c9" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="686620f6-364b-4f7d-984a-b51737c8540b" message="Create Accounts details flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<logger level="DEBUG" doc:name="Log Received Payload" doc:id="5e9af531-0c7f-4f7f-8edc-41ec694b94de" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Incoming Payload :  #[payload]"/>
+		<ee:transform doc:name="Map SFDC Create Account" doc:id="621eddb8-f4a8-487e-82a2-08bc45a504a9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Name: payload.name,
+	Phone: payload.phone,
+	Fax: payload.fax,
+	AccountNumber: payload.number,
+	email__c: payload.email as String,
+	BillingStreet: payload.billingAddress.street,
+	BillingCity: payload.billingAddress.city,
+	BillingState: payload.billingAddress.state,
+	BillingPostalCode: payload.billingAddress.postalCode,
+	BillingCountry: payload.billingAddress.countryIso,
+	ShippingStreet: payload.shippingAddress.street,
+	ShippingCity: payload.shippingAddress.city,
+	ShippingState: payload.shippingAddress.state,
+	ShippingPostalCode: payload.shippingAddress.postalCode,
+	ShippingCountry: payload.shippingAddress.countryIso
+}]]]></ee:set-payload>
+
+			</ee:message>
+			<ee:variables >
+			</ee:variables>
+		
+</ee:transform>
+		<logger level="DEBUG" doc:name="Log SFDC Create Account" doc:id="20b50a5e-3da0-436b-bf2a-a203b8968ec3" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Create Account Payload :  #[payload]"/>
+		<salesforce:create type="Account" doc:name="Create Account" doc:id="ab15da74-f870-448a-9727-6141ac2d6992" config-ref="Salesforce_Config"/>
+		<logger level="DEBUG" doc:name="Log SFDC Create Account Response" doc:id="28ad0f1b-f7ba-4548-8e2f-a4213dc0f9fc" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Create Account Response :  #[payload]"/>
+		<choice doc:name="Is Payload Check?" doc:id="95f1b2d9-3258-42b5-8986-894d5dae0511" >
+			<when expression='#[payload.items[0].successful == false]'>
+				<set-variable value="#[409]" doc:name="Set Variable" doc:id="86b5bb69-9399-41a1-a40f-a0dc664405ce" variableName="httpStatus"/>
+				<ee:transform doc:name="Error Response" doc:id="6e277050-96aa-4ba5-9e9b-0cdaa9d65996" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "409",
+		"message": payload.items[0].statusCode default "",
+		"additionalInfo": "The Post account details is already added the salesforce account. Please check your input details."
+	}]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="DEBUG" doc:name="Log Error Response" doc:id="9fe047d4-dc70-4adb-8de5-20274892db3c" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Create Account Details Error Response :  #[%dw 2.0 output application/json --- payload]"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Map Result Response" doc:id="c9d3a474-e8fa-409b-911c-508d5da220fe">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.items[0].id reduce ((item,acc)->acc ++ item) default "",
+  status: payload.items[0].statusCode default "201",
+  message: "Account created successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="DEBUG" doc:name="Log Create the Account Response" doc:id="10ee54e6-7303-40b4-b721-fd3fbf1132ba" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Create Account Details Response :  #[%dw 2.0 output application/json --- payload]" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Flow End" doc:id="115597fa-07ae-46b8-848e-9c4f3873d6fa" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Create Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ab8a4c72-b602-44a1-9880-cabef55f6a55" type="SALESFORCE:COMMUNICATION, SALESFORCE:CONNECTIVITY, SALESFORCE:INSUFFICIENT_PERMISSIONS, SALESFORCE:LIMIT_EXCEEDED, SALESFORCE:MUTUAL_AUTHENTICATION_FAILED, SALESFORCE:OPERATION_NOT_SUPPORTED, SALESFORCE:RETRY_EXHAUSTED, SALESFORCE:TIMEOUT, SALESFORCE:UNAVAILABLE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="c7bbbb0f-f6dc-48d4-9d3e-bbf2c11ee0b4" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	<flow name="accounts-get-flow" doc:id="08cb3b5e-45e6-4772-9cfd-bf5afd3f7fe9" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="fb7d9fe9-7cf1-426e-983b-fb0bf1dc5c95" message="Get Accounts details flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<ee:transform doc:name="Map SFDC Get Account Query" doc:id="77123cd6-f363-4733-bb9a-51b6f43d53f9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"SELECT Id, Name, BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry, ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry, Phone, Fax, AccountNumber, email__c FROM Account WHERE Id='" ++ attributes.uriParams.account_id ++ "'"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log SFDC Query" doc:id="6e8254c7-85b8-411a-b148-625f55930481" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Query :  #[payload]"/>
+		<try doc:name="Try" doc:id="74da0964-25fd-4fe0-aac9-475cf61b7d29" >
+			<salesforce:query doc:name="Query Account Details" doc:id="9d9bbd56-e1b6-4b18-ac15-cffe9258f80c" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query><![CDATA[#[payload]]]></salesforce:salesforce-query>
+		</salesforce:query>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8a633b97-d2b4-4d5c-8d9d-12475f74a535" type="SALESFORCE:INVALID_INPUT, SALESFORCE:INVALID_RESPONSE, SALESFORCE:NOT_FOUND">
+					<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="ba4cb314-ec06-4be3-8b8e-91285af0db8c" name="Error_HandlerSub_Flow"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="DEBUG" doc:name="Log SFDC Query Response" doc:id="7427e049-6dff-4830-8e8c-a872ac09a763" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Query Response :  #[%dw 2.0 output application/json --- payload]" />
+		<choice doc:name="Is SFDC Query Response Empty?" doc:id="806c6e04-18a3-4b9d-bb57-bd8b7b0dbecc" >
+			<when expression="#[!isEmpty(payload)]">
+				<ee:transform doc:name="Map Account Details Response" doc:id="a9527c46-de5b-4dda-ad9f-35188b59899a">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	name: payload[0].Name,
+	email: payload[0].email__c,
+	number: payload[0].AccountNumber,
+	phone: payload[0].Phone,
+	fax: payload[0].Fax,
+	billingAddress: {
+		street: payload[0].BillingStreet,
+		city: payload[0].BillingCity,
+		state: payload[0].BillingState,
+		postalCode: payload[0].BillingPostalCode,
+		country: payload[0].BillingCountry
+	},
+	shippingAddress: {
+		street: payload[0].ShippingStreet,
+		city: payload[0].ShippingCity,
+		state: payload[0].ShippingState,
+		postalCode: payload[0].ShippingPostalCode,
+		country: payload[0].ShippingCountry
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="DEBUG" doc:name="Log Get Account Details Response" doc:id="d271a482-908f-4997-b1f1-895e1272364c" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Get Account Details Response :  #[%dw 2.0 output application/json --- payload]" />
+			</when>
+			<otherwise >
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="a8cf921f-ef74-4248-a089-732656edbb2a" name="Error_HandlerSub_Flow" />
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Flow End" doc:id="9da0dad0-e818-48d6-bdf8-8ded4fa7782f" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Get Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e6e8e66e-bd10-4f97-b7c2-258169dd02ef" type="SALESFORCE:COMMUNICATION, SALESFORCE:CONNECTIVITY, SALESFORCE:INSUFFICIENT_PERMISSIONS, SALESFORCE:LIMIT_EXCEEDED, SALESFORCE:MUTUAL_AUTHENTICATION_FAILED, SALESFORCE:OPERATION_NOT_SUPPORTED, SALESFORCE:RETRY_EXHAUSTED, SALESFORCE:TIMEOUT, SALESFORCE:UNAVAILABLE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="d598a8b5-a9f1-4bd4-b81c-50e50cec5355" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	<flow name="accounts-delete-flow" doc:id="4b5a7d46-5ded-4147-a094-6b252a12221c" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="53999d3b-c5db-4939-a2d5-73729348bea4" message="Delete Accounts details flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<ee:transform doc:name="Map SFDC Get Account ID Query" doc:id="1ec85585-6167-46d3-ae0d-996aea482d2f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"SELECT Id FROM Account WHERE Id='" ++ attributes.uriParams.account_id ++ "'"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log SFDC Query" doc:id="ba2b2231-dc0e-499e-b8ee-d1e264553a03" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Query :  #[payload]"/>
+		<try doc:name="Try" doc:id="d2c28fab-c32d-4a31-8ed6-aa305689b6a6" >
+			<salesforce:query doc:name="Query Account ID" doc:id="b7cb6e25-5f45-4d6a-90d5-56e1ab5a316c" config-ref="Salesforce_Config" target="id">
+			<salesforce:salesforce-query><![CDATA[#[payload]]]></salesforce:salesforce-query>
+		</salesforce:query>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="355b275c-05ec-4505-98fe-9f5e85f8b68f" type="SALESFORCE:INVALID_INPUT, SALESFORCE:INVALID_RESPONSE, SALESFORCE:NOT_FOUND">
+					<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="39d02f42-4bfe-4227-ab41-cd15833ffffc" name="Error_HandlerSub_Flow" />
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="DEBUG" doc:name="Log SFDC Query Response" doc:id="32985b09-f3b3-47ce-a47d-5b2f43055b02" message="Flow name : #[flow.name], CorrelationId : #[correlationId], SFDC Query Response :  #[vars.id]" />
+		<choice doc:name="Is SFDC Query Response Empty?" doc:id="bcdaaec9-2f4a-45cb-aa4a-ca848deeb5c7" >
+			<when expression="#[!isEmpty(vars.id)]">
+				<salesforce:delete doc:name="Delete Account From SFDC" doc:id="3e0f52c9-5aae-4795-bdca-0adc02f78a15" config-ref="Salesforce_Config">
+			<salesforce:ids><![CDATA[#[vars.id.Id]]]></salesforce:ids>
+		</salesforce:delete>
+				<ee:transform doc:name="Map Result Response" doc:id="ed4a5a26-404f-4f4c-a3b1-b6002c12961e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.items[0].id reduce ((item,acc)->acc ++ item) default "",
+  status: payload.items[0].statusCode default "200",
+  message: "Account deleted successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="DEBUG" doc:name="Log Delete Account Details Response" doc:id="febb569e-059d-4c5f-a39e-7932ca971051" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Delete Account Details Response :  #[%dw 2.0 output application/json --- payload]" />
+			</when>
+			<otherwise >
+				<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="12ccc7e4-e331-435f-9365-71258b053296" name="Error_HandlerSub_Flow"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Flow End" doc:id="1e5f7fc2-f2f6-479d-8e9b-b21ee20dc8b4" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Delete Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="81419120-735a-47c5-b6db-40b063d1e46e" type="SALESFORCE:COMMUNICATION, SALESFORCE:CONNECTIVITY, SALESFORCE:INSUFFICIENT_PERMISSIONS, SALESFORCE:LIMIT_EXCEEDED, SALESFORCE:MUTUAL_AUTHENTICATION_FAILED, SALESFORCE:OPERATION_NOT_SUPPORTED, SALESFORCE:RETRY_EXHAUSTED, SALESFORCE:TIMEOUT, SALESFORCE:UNAVAILABLE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="5a4f4f1f-4ea5-4e2f-a9bb-44baae0e6b04" name="globalError_HandlerSub_Flow" />
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	</mule>

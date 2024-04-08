@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="update-accounts-flow" doc:id="685b8e62-7cef-4ae5-91e3-021417afe6f1" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="74485e2a-ba31-4e3b-944b-c43494c27593" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<ee:transform doc:name="Input Payload" doc:id="e433d8e3-fdfd-43bf-9166-7aca8b74791f" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Input Response" doc:id="dcd33d04-331b-4ee9-8526-691620c6736b" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], payload: #[vars.inputPayload]"/>
+		<flow-ref doc:name="request-iso_code_details-subFlow" doc:id="641b88cc-ff83-4f63-b1e7-544747252223" name="request-iso_code_details-subFlow" />
+		<logger level="DEBUG" doc:name="Log iso_code details Response" doc:id="036150ae-46ab-475e-86c1-0808c2af4fb7" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], iso_code response payload: #[payload]"/>
+		<ee:transform doc:name="Map Response" doc:id="d87bdaf8-951f-434f-8261-53f04281ae21" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "name": vars.inputPayload.name,
+  "email": vars.inputPayload.email,
+  "number": vars.inputPayload.number,
+  "phone": vars.inputPayload.phone,
+  "fax": vars.inputPayload.fax,
+  "billingAddress": {
+    "street": vars.inputPayload.billingAddress.street,
+    "city": vars.inputPayload.billingAddress.city,
+    "state": vars.inputPayload.billingAddress.state,
+    "postalCode": vars.inputPayload.billingAddress.postalCode,
+    "countryIso": vars.billing.country
+  },
+  "shippingAddress": {
+    "street": vars.inputPayload.shippingAddress.street,
+    "city": vars.inputPayload.shippingAddress.city,
+    "state": vars.inputPayload.shippingAddress.state,
+    "postalCode": vars.inputPayload.shippingAddress.postalCode,
+    "countryIso": vars.shipping.country
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Map Response" doc:id="98271252-58c6-4dbc-b156-72fa8fd48ae6" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]"/>
+		<http:request method="PUT" doc:name="Request/PUT accounts-sfdc-sapi" doc:id="857fac37-3203-481d-ab6d-c1ffe02d5456" config-ref="Accounts_SFDC_Sapi_HTTP_Request_configuration" path="${accountSapiRequest.putPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"account_id" : vars.account_id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="End Response" doc:id="28fb5ce4-78bf-4b2f-abde-9d52aa179151" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.id,
+  status: payload.status,
+  message: "Account updated successfully"
+} ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log End Response" doc:id="cde51474-0337-4307-a347-3abdb4fdc6a3" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="46ca1e7d-efea-4df4-a85b-ecefdd345a07" />
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="541a28b7-2048-48de-be52-405842dca34c" >
+				<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="0881ad54-4ab5-430f-ad3c-40f48db77af2" name="Error_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	<flow name="post-accounts-flow" doc:id="4537f25e-a597-40af-8ea7-40ce1c94e4eb" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="eceead24-a230-4d5d-91e8-d1b3d464cb7b" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] " />
+		<ee:transform doc:name="Input Payload" doc:id="5910f3fb-521c-433a-a801-d694163f706a">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="inputPayload"><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Input Response" doc:id="12aec3bc-33e4-4317-9706-0eb75ef6f847" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], payload: #[vars.inputPayload]" />
+		<flow-ref doc:name="request-iso_code_details-subFlow" doc:id="f1041c02-8a51-4f26-b21d-239734dcfb58" name="request-iso_code_details-subFlow" />
+		<logger level="DEBUG" doc:name="Log iso_code details Response" doc:id="dce73c86-dee7-43a8-9c0d-c3094c0083ec" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], iso_code response payload: #[payload]" />
+		<ee:transform doc:name="Map Response" doc:id="3842f223-8457-4435-8ad7-45d8bf8dc896">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "name": vars.inputPayload.name,
+  "email": vars.inputPayload.email,
+  "number": vars.inputPayload.number,
+  "phone": vars.inputPayload.phone,
+  "fax": vars.inputPayload.fax,
+  "billingAddress": {
+    "street": vars.inputPayload.billingAddress.street,
+    "city": vars.inputPayload.billingAddress.city,
+    "state": vars.inputPayload.billingAddress.state,
+    "postalCode": vars.inputPayload.billingAddress.postalCode,
+    "countryIso": vars.billing.country
+  },
+  "shippingAddress": {
+    "street": vars.inputPayload.shippingAddress.street,
+    "city": vars.inputPayload.shippingAddress.city,
+    "state": vars.inputPayload.shippingAddress.state,
+    "postalCode": vars.inputPayload.shippingAddress.postalCode,
+    "countryIso": vars.shipping.country
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Map Response" doc:id="f8812de0-91f0-4fbe-8c64-7608babdd246" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]" />
+		<try doc:name="Try" doc:id="c3d5e518-b7d7-4793-9b68-7d08fee44e73" >
+			<http:request method="POST" doc:name="Request/POST accounts-sfdc-sapi" doc:id="1ff97d0e-dc81-49bc-a67a-dc40f520311f" config-ref="Accounts_SFDC_Sapi_HTTP_Request_configuration" path="${accountSapiRequest.postPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+		</http:request>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9b932084-bbd9-4b2d-9d23-088686208cfc" type="ANY">
+					<set-variable value="409" doc:name="Http Status" doc:id="ba88c632-21ed-440e-9789-d54389cc62f2" variableName="httpStatus"/>
+					<ee:transform doc:name="Map Error Response" doc:id="f945a532-077c-43b2-a402-daf5c7093d95" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "409",
+		"message": "DUPLICATES_DETECTED",
+		"additionalInfo": "The Post account details is already added the salesforce account. Please check your input details."
+	}]
+}
+]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<logger level="INFO" doc:name="Log Response" doc:id="56d21799-b5d6-4aa2-ab09-e03be5797d6d" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="End Response" doc:id="fb219349-ab68-484a-bedd-f7d7b40c00ab">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.id,
+  status: payload.status,
+  message: "Account created successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log End Response" doc:id="dedda545-b90f-4fdf-89bc-f91e3b033ef5" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="c03d7cdb-fd5c-4e52-8f51-22db1c93ec99" />
+		<error-handler>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="02494f9c-a19b-48d8-90a7-0cd5c2a8e3f6" type="EXPRESSION">
+				<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="d8555bc4-850e-4db8-bcdc-80a4d1341b87" name="Error_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	<sub-flow name="request-iso_code_details-subFlow" doc:id="ca5f3212-9d3d-4e49-a42b-0fb1d0f37e91" >
+		<scatter-gather doc:name="Scatter-Gather" doc:id="ea53d399-e202-49b5-9199-1c2b7d19a0f6">
+			<route>
+				<ee:transform doc:name="Billing Address Variable" doc:id="781bc966-6172-4024-a465-6fd14a1b92b2">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="billingAddress"><![CDATA[payload.billingAddress.countryIso]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<http:request method="GET" doc:name="Request/GET first-country-lookup-sapi" doc:id="264e0dcd-92c8-4c2d-a99a-8f9e69bac526" config-ref="First_Country_SapiHTTP_Request_configuration" path="${firstCountrySapiRequest.path}" sendCorrelationId="ALWAYS" target="billing" correlationId="#[correlationId]">
+					<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+					<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"iso_code" : vars.billingAddress
+}]]]></http:uri-params>
+				</http:request>
+			
+</route>
+			<route>
+				<ee:transform doc:name="Shipping Address Variable" doc:id="736429c3-ef17-4a86-a195-eb5ba15669ba">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="shippingAddress"><![CDATA[payload.shippingAddress.countryIso
+]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<http:request method="GET" doc:name="Request/GET first-country-lookup-sapi" doc:id="45653ead-403b-426a-9e4b-12f5142bddaa" config-ref="First_Country_SapiHTTP_Request_configuration" path="${firstCountrySapiRequest.path}" target="shipping" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+					<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+					<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"iso_code" : vars.shippingAddress
+}]]]></http:uri-params>
+				</http:request>
+			</route>
+		
+</scatter-gather>
+	
+</sub-flow>
+</mule>

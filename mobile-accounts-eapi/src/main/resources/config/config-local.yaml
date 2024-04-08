@@ -1,0 +1,35 @@
+app:
+  name: "mobile-accounts-eapi"
+  version: "v1"
+  appId: "19393535"
+
+https:  
+  host: "0.0.0.0" 
+  port: "8082"
+  private:   
+    port: "8092"
+  path: "/api/*"
+  timeOut: "30000"
+  idleTimeOut: "40000"
+
+keystore:
+  path: "keystore.jks"
+  alias: "mule-server"
+
+accountPapiRequest:
+  host: "accounts-sfdc-papi.us-e2.cloudhub.io"
+  port: ""
+  putPath: "/api/accounts/{account_id}"
+  postPath: "/api/accounts"
+  idleTimeout: "30000"
+  responseTimeout: "60000"
+
+accountSapiRequest:
+  host: "accounts-sfdc-sapi1.us-e2.cloudhub.io"
+  port: ""
+  deletePath: "/api/accounts/{account_id}"
+  getPath: "/api/accounts/{account_id}"
+  idleTimeout: "30000"
+  responseTimeout: "60000"
+
+  

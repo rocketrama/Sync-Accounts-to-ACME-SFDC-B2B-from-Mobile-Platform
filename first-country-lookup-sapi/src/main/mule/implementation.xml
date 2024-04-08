@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<flow name="get-country-flow" doc:id="1292026e-647d-42f6-91b5-cfdd9c3637d5" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="ac88b75a-5140-4274-8c51-24857caf58cc" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<logger level="DEBUG" doc:name="Before Request Response" doc:id="79a80032-998b-47f6-be2c-82ee3a4194d6" message="Flow name : #[flow.name] and CorrelationId : #[correlationId] before Request payload: #[payload]"/>
+		<try doc:name="Try" doc:id="1d6b2318-06f7-4b47-b56e-61c6f630fba0" >
+			<http:request method="GET" doc:name="Get Country" doc:id="d5519620-bffc-4f43-8dd9-5d58a89664e2" config-ref="FirstApi_Get_Address_HTTP_Request_configuration" path="${firstApi.path}" />
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="19599228-60f6-4cca-becf-b25e13f6aa3d" >
+					<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="c215db45-8ac7-4533-bd00-8211292cba1d" name="Error_HandlerSub_Flow"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+		<logger level="DEBUG" doc:name="Get Country Response" doc:id="d5aee1bd-14fa-4956-8932-57fc3f7d82ea" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Received Payload :  #[payload]"/>
+		<ee:transform doc:name="Map Country" doc:id="6bd17a8c-9433-4afa-b99c-6c4dadf050b2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload.data pluck ((value, key, index) ->{
+    country: value.country,
+    region: value.region,
+    isoCode: key
+} )]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Map Country Response" doc:id="f13391d8-a47b-4dd7-81db-5ccea5eb88db" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Received Payload :  #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="d368b769-01b7-48f4-a716-0c3fae22fd82" message="Flow End with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b724f3f2-206c-41c4-9740-2495c6b75538" >
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="5a15d43f-132d-4bff-bfa3-f6412d79baac" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="get-country-iso_code-flow" doc:id="c6232112-9a56-4735-8274-46c19389fe87" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="ceba2870-5cc1-4163-9d03-e2b5ce431dfc" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<logger level="DEBUG" doc:name="Before Request Response" doc:id="08ecfff2-7c52-48d6-8fe3-d2553be56f7a" message="Flow name : #[flow.name] and CorrelationId : #[correlationId] before Request payload: #[payload]"/>
+		<flow-ref doc:name="get-country-flow" doc:id="cb3df9aa-5768-492f-a0f0-eb7a482633da" name="get-country-flow" />
+		<logger level="DEBUG" doc:name="Log Get Country Response" doc:id="05f150d9-2fa5-4316-87ae-fdd04b898da9" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Get Country Response payload: #[payload]" />
+		<ee:transform doc:name="Map iso_code" doc:id="a6a8b765-1aea-4937-a80b-8c019639df80">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json  
+---
+payload filter ((item, index) -> item.isoCode == vars.iso_code)reduce $]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="32977a71-b1e3-480d-bfbb-5618620cf48b" >
+			<when expression="#[!isEmpty(payload.isoCode)]">
+				<ee:transform doc:name="Response" doc:id="cba36be7-639e-4892-8a5b-19806708281e">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="b1f81c6e-3c1b-4d0d-a85a-25ff25f29b9b" name="globalError_HandlerSub_Flow" />
+			</otherwise>
+		</choice>
+		<logger level="DEBUG" doc:name="Log Get Country_Iso_code Response" doc:id="243efd35-af2e-4a8c-8e00-b74303943669" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Response payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="e80197e3-a25d-403c-890d-75d506213a76" message="Flow End with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1de4cc94-ddef-4310-b821-71a344893254" >
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="9ca5d983-e703-4c3f-924f-01513a0458e6" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

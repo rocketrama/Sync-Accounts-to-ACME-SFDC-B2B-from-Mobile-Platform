@@ -1,0 +1,31 @@
+%dw 2.0
+
+type auto_35fc95b6_21a4_422e_ac35_3ddde12638d0_Input_Payload = {
+  number?: String, 
+  phone?: String, 
+  name?: String, 
+  shippingAddress?: {
+    country?: String, 
+    city?: String, 
+    countryIso?: String, 
+    street?: String, 
+    postalCode?: String, 
+    state?: String, 
+    _?: Any
+  } {"description": "Shipping address details",
+  "label": "Shipping Account Address"}, 
+  billingAddress?: {
+    country?: String, 
+    city?: String, 
+    countryIso?: String, 
+    street?: String, 
+    postalCode?: String, 
+    state?: String, 
+    _?: Any
+  } {"description": "Billing address details",
+  "label": "Billing Account Address"}, 
+  fax?: String, 
+  email?: String | Null, 
+  _?: Any
+}
+

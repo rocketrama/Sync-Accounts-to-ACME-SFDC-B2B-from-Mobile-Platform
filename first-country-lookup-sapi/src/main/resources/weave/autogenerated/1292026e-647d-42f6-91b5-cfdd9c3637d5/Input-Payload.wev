@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_1292026e_647d_42f6_91b5_cfdd9c3637d5_Input_Payload = Array<{  country?: String,   iso?: String,   region?: String,   _?: Any}>
+

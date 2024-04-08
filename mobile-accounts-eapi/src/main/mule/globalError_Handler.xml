@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="globalError_HandlerSub_Flow" doc:id="d4226ed4-570a-4bf5-9a76-b38cf86b9935">
+		<set-variable value="#[500]" doc:name="Set httpStatus" doc:id="eeb34000-e7f2-4ac6-869a-724086fbdfc9" variableName="httpStatus"/>
+		<ee:transform doc:name="Error Response" doc:id="02218be1-7a9d-4d4a-9a8c-50ed5bb1e8bb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "500",
+		"message": error.cause.message,
+		"additionalInfo": error.detailedDescription
+ 
+	}]
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Error Response" doc:id="bbcf9ce8-bab5-4c84-a124-558d955504bf" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]"/>
+	</sub-flow>
+	<sub-flow name="Error_HandlerSub_Flow" doc:id="59bb7321-731c-4f1c-855f-470235b7dbc9" >
+		<set-variable value="#[404]" doc:name="Set httpStatus" doc:id="6396d576-7c7c-407b-a56a-eb1746e8fce0" variableName="httpStatus" />
+		<ee:transform doc:name="Error Response" doc:id="09d65b2d-17ef-4fe6-b428-1134baff1a5a">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "404",
+		"message": "The Request Account Id is not available",
+		"additionalInfo": "The Request Account Id is not available. Please check your account Number."
+	}]
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+		<logger level="DEBUG" doc:name="Log Error Response" doc:id="fdae978c-bc27-412d-8d4f-361587b3c37f" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]" />
+	</sub-flow>
+	</mule>

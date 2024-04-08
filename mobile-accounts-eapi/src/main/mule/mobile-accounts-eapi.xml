@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+    <flow name="mobile-accounts-eapi-main">
+        <http:listener path="${https.path}" config-ref="mobile-accounts-eapi-httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="mobile-accounts-eapi-config" />
+        <error-handler ref="generalAPIKitErrorHandler" />
+    </flow>
+    <flow name="mobile-accounts-eapi-console">
+        <http:listener path="/console/*" config-ref="mobile-accounts-eapi-httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="mobile-accounts-eapi-config" />
+        <error-handler ref="generalAPIKitErrorHandler" />
+    </flow>
+    <flow name="put:\accounts\(account_id):application\json:mobile-accounts-eapi-config">
+        <ee:transform doc:name="account_id">
+            <ee:variables>
+                <ee:set-variable variableName="account_id">attributes.uriParams.'account_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-accounts-flow" doc:id="cf73777c-0c7c-40a7-8ac1-9d9144170240" name="update-accounts-flow" />
+    </flow>
+    <flow name="delete:\accounts\(account_id):mobile-accounts-eapi-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="account_id">attributes.uriParams.'account_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="delete-account-flow" doc:id="8a028bc7-bac0-417e-b960-bc79241e3134" name="delete-account-flow" />
+    </flow>
+    <flow name="get:\accounts\(account_id):mobile-accounts-eapi-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="account_id">attributes.uriParams.'account_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-account-flow" doc:id="2047c922-d191-464c-bf2c-f577f770adee" name="get-account-flow" />
+    </flow>
+    <flow name="post:\accounts:application\json:mobile-accounts-eapi-config">
+        <flow-ref doc:name="post-account-flow" doc:id="b0dba857-f625-4044-bfc3-b3f3a50b1479" name="post-account-flow" />
+    </flow>
+</mule>

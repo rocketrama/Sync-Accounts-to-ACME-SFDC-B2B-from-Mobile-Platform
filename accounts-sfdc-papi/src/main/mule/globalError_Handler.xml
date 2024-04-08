@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="Error_HandlerSub_Flow" doc:id="19aee8af-65cc-4e08-9657-d68579a2649b" >
+		<set-variable value="#[404]" doc:name="Set httpStatus" doc:id="71ccf5c2-a65d-457a-bfb3-265e3e554f28" variableName="httpStatus" />
+		<ee:transform doc:name="Error Response" doc:id="20c70930-9ba7-4128-8354-9e2b37f6efbc">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "404",
+		"message": "The Request Account Id is not available",
+		"additionalInfo": "The Request Account Id is not available. Please check your account Number."
+	}]
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+		<logger level="DEBUG" doc:name="Log Error Response" doc:id="4dd44e04-bf8c-4170-ab21-da197eaa4590" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]" />
+	</sub-flow>
+</mule>

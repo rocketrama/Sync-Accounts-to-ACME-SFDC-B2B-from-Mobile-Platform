@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="mobile-accounts-eapi-suite.xml" />
+	<munit:test name="mobile-accounts-eapi-main-test" doc:id="da1f696b-0575-418d-9bba-eeea1be901f0" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Listener" doc:id="4729bca5-9a11-4756-9952-4a269ba04fd1" processor="http:listener">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="${https.path}" attributeName="path" />
+					<munit-tools:with-attribute whereValue="mobile-accounts-eapi-httpListenerConfig" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="APIKIT Router" doc:id="b9145a7d-54f8-4f59-a069-c23670dde416" processor="apikit:router">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="mobile-accounts-eapi-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="b79ffca9-bfde-4375-9fb7-1de67e339618" >
+				<munit:payload value="#[readUrl('classpath://mobileaccountseapimaintest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://mobileaccountseapimaintest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to mobile-accounts-eapi-main" doc:id="3456eeab-ff7f-4d8b-9b00-57bb6986474e" name="mobile-accounts-eapi-main"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="e7dbe77d-606f-4b43-ac70-e12fa145d3bb" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import mobileaccountseapimaintest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="mobile-accounts-eapi-console-test" doc:id="bd6b3719-2d63-4760-9a8b-ac0295f41a07" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Listener" doc:id="a57006d6-78dd-4412-a7a3-2427162297c4" processor="http:listener">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="/console/*" attributeName="path" />
+					<munit-tools:with-attribute whereValue="mobile-accounts-eapi-httpListenerConfig" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="APIKIT Console" doc:id="dcf06679-0aff-4f46-9616-fb23b90b718a" processor="apikit:console">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="mobile-accounts-eapi-config" attributeName="config-ref" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit:set-event doc:name="Set Input" doc:id="77460a12-f11f-4572-8848-ee51b837ba5a" >
+				<munit:payload value="#[readUrl('classpath://mobileaccountseapiconsoletest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://mobileaccountseapiconsoletest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to mobile-accounts-eapi-console" doc:id="397e5645-d26e-4cfb-826b-0ce710679e39" name="mobile-accounts-eapi-console"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="845774bf-7728-491c-9fe8-4ff67377fb2b" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import mobileaccountseapiconsoletest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="put:\accounts\(account_id):application\json:mobile-accounts-eapi-config-test" doc:id="f426e134-dab1-491e-9e20-0ad654f7d443" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="7b9cbc77-4f91-48b8-825f-951d960787b0" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://putaccountsaccountidapplicationjsonmobileaccountseapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://putaccountsaccountidapplicationjsonmobileaccountseapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://putaccountsaccountidapplicationjsonmobileaccountseapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to put:\accounts\(account_id):application\json:mobile-accounts-eapi-config" doc:id="394ff649-ead9-45e8-8072-abf19a98faeb" name="put:\accounts\(account_id):application\json:mobile-accounts-eapi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="871e6881-03e0-4450-9c7f-950736202c9d" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import putaccountsaccountidapplicationjsonmobileaccountseapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="delete:\accounts\(account_id):mobile-accounts-eapi-config-test" doc:id="d27b8850-290d-4864-8521-dc187dc2e9e9" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="f780a73b-114e-4d04-82de-0d121b651a45" >
+				<munit:payload value="#[readUrl('classpath://deleteaccountsaccountidmobileaccountseapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://deleteaccountsaccountidmobileaccountseapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://deleteaccountsaccountidmobileaccountseapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to delete:\accounts\(account_id):mobile-accounts-eapi-config" doc:id="b9d5c26f-3e43-4a8b-b99c-8bdff2ee592b" name="delete:\accounts\(account_id):mobile-accounts-eapi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="5eb14446-a293-491f-b583-72ea0fa5a676" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import deleteaccountsaccountidmobileaccountseapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="get:\accounts\(account_id):mobile-accounts-eapi-config-test" doc:id="bd50296d-c0c3-42ca-b7c7-e96cad69e18c" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="4b54d8e0-1147-493e-9da3-aba5ef70bded" >
+				<munit:payload value="#[readUrl('classpath://getaccountsaccountidmobileaccountseapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://getaccountsaccountidmobileaccountseapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://getaccountsaccountidmobileaccountseapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to get:\accounts\(account_id):mobile-accounts-eapi-config" doc:id="bbeb7ee7-c1c6-47dd-9aab-31888dfa86e1" name="get:\accounts\(account_id):mobile-accounts-eapi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="7a1ba6c2-be04-479e-9980-1568ef857860" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import getaccountsaccountidmobileaccountseapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="post:\accounts:application\json:mobile-accounts-eapi-config-test" doc:id="3bc885dc-5049-4907-9df6-fc2a82c83778" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="f3418ae0-474c-4100-acdc-f44a271f5abc" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://postaccountsapplicationjsonmobileaccountseapiconfigtest\set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://postaccountsapplicationjsonmobileaccountseapiconfigtest\set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://postaccountsapplicationjsonmobileaccountseapiconfigtest\set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to post:\accounts:application\json:mobile-accounts-eapi-config" doc:id="791d43be-9e27-4048-87a3-81658ae2b644" name="post:\accounts:application\json:mobile-accounts-eapi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="574451e9-cae4-4d1d-a161-a16c06ed4bd3" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import postaccountsapplicationjsonmobileaccountseapiconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>

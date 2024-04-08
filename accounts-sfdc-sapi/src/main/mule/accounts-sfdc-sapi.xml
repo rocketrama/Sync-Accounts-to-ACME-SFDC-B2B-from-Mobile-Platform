@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+        <flow name="accounts-sfdc-sapi-main">
+        <http:listener config-ref="accounts-sfdc-sapi-httpListenerConfig" path="${https.path}">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="accounts-sfdc-sapi-config" />
+		<error-handler ref="generalAPIKitErrorHandler"/>
+    </flow>
+    <flow name="accounts-sfdc-sapi-console">
+        <http:listener config-ref="accounts-sfdc-sapi-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="accounts-sfdc-sapi-config" />
+		<error-handler ref="generalAPIKitErrorHandler"/>
+    </flow>
+    <flow name="put:\accounts\(account_id):application\json:accounts-sfdc-sapi-config">
+        <ee:transform doc:name="account_id">
+            <ee:variables>
+                <ee:set-variable variableName="account_id">attributes.uriParams.'account_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<flow-ref doc:name="accounts-update-flow" doc:id="29f0697d-ddff-4238-ab5d-58d550ca6299" name="accounts-update-flow"/>
+    </flow>
+    <flow name="delete:\accounts\(account_id):accounts-sfdc-sapi-config">
+        <ee:transform doc:name="account_id">
+            <ee:variables>
+                <ee:set-variable variableName="account_id">attributes.uriParams.'account_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<flow-ref doc:name="accounts-delete-flow" doc:id="fae22163-4be9-4219-a29b-130f83501563" name="accounts-delete-flow"/>
+    </flow>
+    <flow name="get:\accounts\(account_id):accounts-sfdc-sapi-config">
+        <ee:transform doc:name="account_id">
+            <ee:variables>
+                <ee:set-variable variableName="account_id">attributes.uriParams.'account_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<flow-ref doc:name="accounts-get-flow" doc:id="4b108be7-2cb5-4754-92a0-eb07ae2e9cd0" name="accounts-get-flow"/>
+    </flow>
+    <flow name="post:\accounts:application\json:accounts-sfdc-sapi-config">
+		<flow-ref doc:name="account-create-flow" doc:id="08167962-21d4-4a01-b0d3-3fd4088fb94b" name="account-create-flow"/>
+    </flow>
+</mule>

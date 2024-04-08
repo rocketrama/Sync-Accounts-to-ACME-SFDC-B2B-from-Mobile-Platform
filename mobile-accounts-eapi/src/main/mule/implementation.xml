@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+		<flow name="update-accounts-flow" doc:id="35fc95b6-21a4-422e-ac35-3ddde12638d0" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="8b369f8f-1b9d-46a8-853c-c62ec4071abf" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<ee:transform doc:name="Incoming Payload" doc:id="b21dc7d7-07d4-42a6-8047-8f6844049b38" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Incoming Payload Response" doc:id="53e03e74-1cd9-4e0c-b7de-15f1b71a87f0" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<http:request method="PUT" doc:name="Request/PUT accounts-sfdc-papi" doc:id="a97a32c1-06f0-4cc4-bef1-fe98ece1e258" config-ref="Accounts_SFDC_Papi_HTTP_Request_configuration" path="${accountPapiRequest.putPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"account_id" : vars.account_id
+}]]]></http:uri-params>
+		</http:request>
+		<logger level="DEBUG" doc:name="Log accounts-sfdc-papi Response" doc:id="9e62b084-8a2e-45c7-a3ea-a6e447770522" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<ee:transform doc:name="Map Response" doc:id="649efc9f-1194-462f-985e-6bec9303f95d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.id,
+  status: payload.status,
+  message: "Account updated successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Map Response" doc:id="b6d60004-5296-4c92-9ea9-d7856022dfb0" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="287cee73-cb0e-40d0-8333-f2f9e6b8564b" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Update Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="122dd63f-cb1c-4ad6-96be-676afb250ac5">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="6cb3ce8b-f44a-413f-bf3e-04325382de9d" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="post-account-flow" doc:id="bc24d9db-ad49-42cc-b7b0-5272002b351c">
+		<logger level="INFO" doc:name="Flow Start" doc:id="6f0dc609-5be8-49ae-8cfe-b393c98e2823" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] " />
+		<ee:transform doc:name="Incoming Payload" doc:id="cd1ab6a8-46e0-439e-a9ab-dc616c4eb9ee">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Incoming Payload Response" doc:id="c0323f80-776c-4080-b9d2-5d94e71a96aa" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]" />
+		<http:request method="POST" doc:name="Request/POST accounts-sfdc-papi" doc:id="390bc42f-ed79-4d0c-9b4b-b55ee45c39e2" config-ref="Accounts_SFDC_Papi_HTTP_Request_configuration" path="${accountPapiRequest.postPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+		</http:request>
+		<logger level="DEBUG" doc:name="Log accounts-sfdc-papi Response" doc:id="c0d62db2-8527-4202-bcb6-a01fb4f1989f" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<ee:transform doc:name="Map Response" doc:id="778830d3-b4e0-47d1-b903-024f91a3020b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.id,
+  status: payload.status,
+  message: "Account created successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Map Response" doc:id="7a1b3b08-18b1-463e-b0dd-d25fc6345be3" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="fcb871c8-c3e0-4a49-b305-eca7d1457bae" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Update Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e8288839-53e2-41aa-bd3d-dd19a012e723">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="5a00e96c-6345-46d9-a4c2-760f4ad3df5e" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="get-account-flow" doc:id="0341e883-83c5-47ff-b44d-fb9ffe9ef413" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="3b916dd3-cbf9-4a0b-90ad-1283937bc014" message="Flow started with Flow name : #[flow.name] and CorrelationId : #[correlationId] "/>
+		<http:request method="GET" doc:name="Request/GET accounts-sfdc-papi" doc:id="d807b75a-1119-46a0-822c-8cdb79de2e28" config-ref="Accounts_SFDC_Sapi_HTTP_Request_configuration" path="${accountSapiRequest.getPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"account_id" : vars.account_id
+}]]]></http:uri-params>
+		</http:request>
+		<logger level="DEBUG" doc:name="Log accounts-sfdc-papi Response" doc:id="a7d05105-3b4d-483a-83ec-b5de662b2bba" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<ee:transform doc:name="Map Response" doc:id="90d0e096-a76c-4934-adcc-75e137cfc7e9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  name: payload.name,
+  email: payload.email,
+  number: payload.number,
+  phone: payload.phone,
+  fax: payload.fax,
+  billingAddress: {
+    street: payload.billingAddress.street,
+    city: payload.billingAddress.city,
+    state: payload.billingAddress.state,
+    postalCode: payload.billingAddress.postalCode,
+    country: payload.billingAddress.country
+  },
+  shippingAddress: {
+    street: payload.shippingAddress.street,
+    city: payload.shippingAddress.city,
+    state: payload.shippingAddress.state,
+    postalCode: payload.shippingAddress.postalCode,
+    country: payload.shippingAddress.country
+  }
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Map Response" doc:id="0e809c29-56fe-4e19-b6c2-c72e79e93c2d" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="35e96e77-19d8-446a-b9e8-1c1c9c503fc9" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Update Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="480e0a3a-cc59-4d7a-80eb-46a2fdd4680c">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="9cda96cd-7903-42ae-b4e4-835fee68a115" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<flow name="delete-account-flow" doc:id="294df5fc-937a-4e7e-95ca-f13833366fd8" >
+		<logger level="INFO" doc:name="Flow Start" doc:id="59f9c601-9c09-4c4d-b510-a31d45f541b8" />
+		<http:request method="DELETE" doc:name="Request/DELETE accounts-sfdc-papi" doc:id="ce15ed0d-f515-4bf9-83a9-c7467e18983e" config-ref="Accounts_SFDC_Sapi_HTTP_Request_configuration" path="${accountSapiRequest.deletePath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"account_id" : vars.account_id
+}]]]></http:uri-params>
+		</http:request>
+		<logger level="DEBUG" doc:name="Log accounts-sfdc-papi Response" doc:id="985a5049-1376-4e34-8d0f-7623c42e8022" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<ee:transform doc:name="Map Response" doc:id="fdc2caec-92d6-42dd-908c-c27b6a59e4ef" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: payload.id,
+  status: payload.status,
+  message: "Account created successfully"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Map Response" doc:id="2f173c13-34b9-4fbe-a954-45a1e8104f1d" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Incoming payload: #[payload]"/>
+		<logger level="INFO" doc:name="Flow End" doc:id="ad15f8e9-6d57-40bf-a2c6-3ea623e43d24" message="Flow name : #[flow.name], CorrelationId : #[correlationId] Update Account Flow is End"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="af0805cc-5d80-4a29-9eac-cb741a6d2c75">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="6e719657-f6ee-4e13-8e67-cbf51d3cdda9" name="globalError_HandlerSub_Flow"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

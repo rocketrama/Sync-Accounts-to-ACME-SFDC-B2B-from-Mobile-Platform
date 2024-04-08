@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd 
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+    <http:listener-config name="first-country-lookup-sapi-httpListenerConfig">
+        <http:listener-connection host="${https.host}" port="${https.port}" readTimeout="${https.timeOut}" connectionIdleTimeout="${https.idleTimeOut}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="${keystore.path}" alias="${keystore.alias}" keyPassword="${secure::keystore.password}" password="${secure::keystore.password}"/>
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="first-country-lookup-sapi-config" api="resource::f35db984-79ab-47a8-bc18-b3e3688470c1:first-country-lookup-sapi:1.0.0:raml:zip:first-country-lookup-sapi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<import doc:name="Import" doc:id="303343e3-7101-443a-935d-af8e402059cd" file="global_error_handler.xml" />
+	<configuration-properties doc:name="Configuration properties" doc:id="84ee3164-a6ef-4f14-846a-aa0dfa73ce91" file="config\config-${mule-env}.yaml" />
+	<global-property doc:name="Global Property" doc:id="68b76c8b-586d-4697-9a32-8cf8e4e6ca9f" name="mule-env" value="local" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="73765901-ea48-47cb-83c5-a9e0f9de608b" file="config\config-secured-${mule-env}.yaml" key="${mule-encryptionKey}" />
+	<global-property doc:name="Global Property" doc:id="f8894e08-b213-4fbc-8cbf-10346e7a9c6e" name="mule-encryptionKey" value="Training@1234567" />
+	<api-gateway:autodiscovery apiId="${app.appId}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="471f3ad1-87ed-4306-85b8-0169e3b4eb16" flowRef="first-country-lookup-sapi-main" />	
+	<tls:context name="TLS_Context" doc:name="TLS Context" doc:id="97015ca4-0b29-4f7e-8b8f-7194a7937197" >
+		<tls:trust-store insecure="true" />
+	</tls:context>
+	<http:request-config name="FirstApi_Get_Address_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ea8fb1b4-df50-4f92-9b59-1f8185439425" responseTimeout="${firstApi.responseTimeout}" >
+		<http:request-connection protocol="HTTPS" host="${firstApi.host}" connectionIdleTimeout="${firstApi.idleTimeout}" tlsContext="TLS_Context" />
+	</http:request-config>
+</mule>

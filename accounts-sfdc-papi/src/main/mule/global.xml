@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd 
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<http:listener-config name="accounts-papi-httpListenerConfig">
+	    <http:listener-connection host="${https.host}" port="${https.port}" readTimeout="${https.timeOut}" connectionIdleTimeout="${https.idleTimeOut}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="${keystore.path}" alias="${keystore.alias}" keyPassword="${secure::keystore.password}" password="${secure::keystore.password}"/>
+			</tls:context>
+		</http:listener-connection>
+	    </http:listener-config>
+	 <apikit:config name="accounts-papi-config" api="resource::f35db984-79ab-47a8-bc18-b3e3688470c1:accounts-papi:1.0.0:raml:zip:accounts-papi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<import doc:name="Import" doc:id="e75579bf-fc36-4d3f-b2cf-b6e7da987796" file="global_error_handler.xml" />
+		<configuration-properties doc:name="Configuration properties" doc:id="87f7c02a-c832-4e72-96e7-d5c5412bc58c" file="config\config-${mule-env}.yaml" />
+		<global-property doc:name="Global Property" doc:id="3ef0330f-b3fe-4fd7-a3f1-bd76bf22b03c" name="mule-env" value="local" />
+		<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="bc7d778c-aafd-479b-896d-8fa46c31271b" file="config\config-secured-${mule-env}.yaml" key="${mule-encryptionKey}" />
+		<global-property doc:name="Global Property" doc:id="762ebdac-edd2-4af0-b237-bc3ce72d4915" name="mule-encryptionKey" value="Training@1234567" />
+		<api-gateway:autodiscovery apiId="${app.appId}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="949cf934-e9fb-4de5-ad08-85bbba3396a8" flowRef="accounts-papi-main" />	
+	<http:request-config name="First_Country_SapiHTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b786577f-ad3d-4c25-9bc6-b746cd14cb8c" responseTimeout="${firstCountrySapiRequest.responseTimeout}">
+		<http:request-connection protocol="HTTPS" host="${firstCountrySapiRequest.host}" connectionIdleTimeout="${firstCountrySapiRequest.idleTimeout}"/>
+	</http:request-config>
+	<http:request-config name="Accounts_SFDC_Sapi_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c7a9102c-98ae-4802-9d72-c3e7c3202a84" responseTimeout="${accountSapiRequest.responseTimeout}" >
+		<http:request-connection protocol="HTTPS" host="${accountSapiRequest.host}" connectionIdleTimeout="${accountSapiRequest.idleTimeout}" />
+	</http:request-config>
+</mule>

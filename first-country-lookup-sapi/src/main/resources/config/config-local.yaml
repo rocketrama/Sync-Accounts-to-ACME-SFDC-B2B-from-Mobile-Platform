@@ -1,0 +1,28 @@
+app:
+  name: "accounts-sfdc-sapi"
+  appId: "19397084"
+  cloudhub:
+    https:
+      port: ${https.port}
+
+https:  
+  host: "0.0.0.0" 
+  port: "8082"
+  private:   
+    port: "8092"
+  path: "/api/*"
+  timeOut: "30000"
+  idleTimeOut: "40000"
+
+keystore:
+  path: "keystore.jks"
+  alias: "mule-server"
+
+firstApi:
+  host: "api.first.org"
+  port: ""
+  path: "/data/v1/countries"
+  idleTimeout: "30000"
+  responseTimeout: "60000"
+
+  

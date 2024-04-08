@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd  http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd  http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+    <http:listener-config name="mobile-accounts-eapi-httpListenerConfig">
+        <http:listener-connection host="${https.host}" port="${https.port}" readTimeout="${https.timeOut}" connectionIdleTimeout="${https.idleTimeOut}" protocol="HTTPS">
+            <tls:context>
+                <tls:key-store type="jks" path="${keystore.path}" alias="${keystore.alias}" keyPassword="${secure::keystore.password}" password="${secure::keystore.password}" />
+            </tls:context>
+        </http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="mobile-accounts-eapi-config" api="resource::f35db984-79ab-47a8-bc18-b3e3688470c1:mobile-accounts-eapi:1.0.1:raml:zip:mobile-accounts-eapi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <import doc:name="Import" doc:id="ce557673-f049-46c5-aec5-77caae8dca4c" file="global_error_handler.xml" />
+    <configuration-properties doc:name="Configuration properties" doc:id="3e28f274-604b-4107-82fd-e3b27c96be5a" file="config\config-${mule-env}.yaml" />
+    <global-property doc:name="Global Property" doc:id="40a20e85-8f0e-4258-81e0-6b4af18aa857" name="mule-env" value="local" />
+    <secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="10e0dbaf-6382-4ba3-a547-31b0f820e571" file="config\config-secured-${mule-env}.yaml" key="${mule-encryptionKey}" />
+    <global-property doc:name="Global Property" doc:id="1925bb07-4027-424e-850f-8664fceb4e20" name="mule-encryptionKey" value="Training@1234567" />
+    <api-gateway:autodiscovery apiId="${app.appId}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="e2b71fb9-23db-47d3-82f0-7273c03ecfc8" flowRef="mobile-accounts-eapi-main" />
+    <http:request-config name="Accounts_SFDC_Sapi_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="331db49b-3301-426c-b9e0-af50df1a64ed" responseTimeout="${accountSapiRequest.responseTimeout}">
+        <http:request-connection protocol="HTTPS" host="${accountSapiRequest.host}" connectionIdleTimeout="${accountSapiRequest.idleTimeout}" />
+    </http:request-config>
+    <http:request-config name="Accounts_SFDC_Papi_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="bf13b945-e649-4b70-8d22-394f4f2911b0" responseTimeout="${accountPapiRequest.responseTimeout}">
+        <http:request-connection protocol="HTTPS" host="${accountPapiRequest.host}" connectionIdleTimeout="${accountPapiRequest.idleTimeout}" />
+    </http:request-config>
+</mule>

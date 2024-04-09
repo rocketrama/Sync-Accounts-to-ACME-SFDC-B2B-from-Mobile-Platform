@@ -5,6 +5,30 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="globalError_HandlerSub_Flow" doc:id="f0bba6fb-fdf1-4ee1-90d7-4f84d520df6a">
+		<set-variable value="#[500]" doc:name="Set httpStatus" doc:id="92995142-527f-4d03-aa6b-59a307cc8ad7" variableName="httpStatus"/>
+		<ee:transform doc:name="Error Response" doc:id="f264dd98-3bd4-4d6b-856b-40e80c425d56" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "500",
+		"message": error.cause.message,
+		"additionalInfo": error.detailedDescription
+	}]
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Log Error Response" doc:id="b9496dfa-4a18-4eb8-a670-60fd9a662260" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]"/>
+	</sub-flow>
 	<sub-flow name="Error_HandlerSub_Flow" doc:id="19aee8af-65cc-4e08-9657-d68579a2649b" >
 		<set-variable value="#[404]" doc:name="Set httpStatus" doc:id="71ccf5c2-a65d-457a-bfb3-265e3e554f28" variableName="httpStatus" />
 		<ee:transform doc:name="Error Response" doc:id="20c70930-9ba7-4128-8354-9e2b37f6efbc">
@@ -28,5 +52,29 @@ output application/json skipNullOn="everywhere"
 					</ee:message>
 				</ee:transform>
 		<logger level="DEBUG" doc:name="Log Error Response" doc:id="4dd44e04-bf8c-4170-ab21-da197eaa4590" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]" />
+	</sub-flow>
+	<sub-flow name="Error_HandlerSub_Flow-conflict" doc:id="54de1177-797f-40c7-a88d-f877115a8a18" >
+	<set-variable value="409" doc:name="Http Status" doc:id="07a3c149-0885-4681-8aa9-a07909cb1808" variableName="httpStatus"/>
+					<ee:transform doc:name="Map Error Response" doc:id="6107eab7-d94d-4dec-aef9-b7707977708b" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"success": false,
+	"apiName": p("app.name") default "",
+	"version": p("app.version") default "",
+	"correlation-id": correlationId,
+	"timeStamp": now(),
+	"errorDetails":[{
+		"code": vars.httpStatus default "409",
+		"message": "DUPLICATES_DETECTED",
+		"additionalInfo": "The Post account details is already added the salesforce account. Please check your input details."
+	}]
+}
+]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<logger level="INFO" doc:name="Log Response" doc:id="c84b8d1b-c303-4fce-afd5-bf51d2440186" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]"/>
 	</sub-flow>
 </mule>

@@ -51,7 +51,8 @@ output application/json
 			</ee:message>
 		</ee:transform>
 		<logger level="DEBUG" doc:name="Log Map Response" doc:id="98271252-58c6-4dbc-b156-72fa8fd48ae6" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]"/>
-		<http:request method="PUT" doc:name="Request/PUT accounts-sfdc-sapi" doc:id="857fac37-3203-481d-ab6d-c1ffe02d5456" config-ref="Accounts_SFDC_Sapi_HTTP_Request_configuration" path="${accountSapiRequest.putPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
+		<try doc:name="Try" doc:id="f8d84988-04cf-44eb-99fb-4eb5b4c129b5" >
+			<http:request method="PUT" doc:name="Request/PUT accounts-sfdc-sapi" doc:id="857fac37-3203-481d-ab6d-c1ffe02d5456" config-ref="Accounts_SFDC_Sapi_HTTP_Request_configuration" path="${accountSapiRequest.putPath}" sendCorrelationId="ALWAYS" correlationId="#[correlationId]">
 			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
 			<http:uri-params><![CDATA[#[output application/java
 ---
@@ -59,6 +60,12 @@ output application/json
 	"account_id" : vars.account_id
 }]]]></http:uri-params>
 		</http:request>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="84bf3a6b-c0d7-4f97-ad1f-0b4635147ce1" type="HTTP:NOT_FOUND">
+					<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="98c300dd-ddd8-4c73-9b63-8e3007febc23" name="Error_HandlerSub_Flow"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
 		<ee:transform doc:name="End Response" doc:id="28fb5ce4-78bf-4b2f-abde-9d52aa179151" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -74,8 +81,8 @@ output application/json
 		<logger level="INFO" doc:name="Log End Response" doc:id="cde51474-0337-4307-a347-3abdb4fdc6a3" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]"/>
 		<logger level="INFO" doc:name="Flow End" doc:id="46ca1e7d-efea-4df4-a85b-ecefdd345a07" />
 		<error-handler>
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="541a28b7-2048-48de-be52-405842dca34c" >
-				<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="0881ad54-4ab5-430f-ad3c-40f48db77af2" name="Error_HandlerSub_Flow"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="541a28b7-2048-48de-be52-405842dca34c" type="HTTP:BAD_GATEWAY, HTTP:BAD_REQUEST, HTTP:CLIENT_SECURITY, HTTP:CONNECTIVITY, HTTP:FORBIDDEN, HTTP:INTERNAL_SERVER_ERROR, HTTP:METHOD_NOT_ALLOWED, HTTP:NOT_ACCEPTABLE, HTTP:PARSING, HTTP:RETRY_EXHAUSTED, HTTP:SECURITY, HTTP:SERVICE_UNAVAILABLE, HTTP:TIMEOUT, HTTP:TOO_MANY_REQUESTS, HTTP:UNAUTHORIZED, HTTP:UNSUPPORTED_MEDIA_TYPE, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="0881ad54-4ab5-430f-ad3c-40f48db77af2" name="globalError_HandlerSub_Flow"/>
 			</on-error-propagate>
 		</error-handler>
 	
@@ -130,29 +137,8 @@ output application/json
 			<http:headers><![CDATA[#[${file::dwl/request-header.dwl}]]]></http:headers>
 		</http:request>
 			<error-handler >
-				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9b932084-bbd9-4b2d-9d23-088686208cfc" type="ANY">
-					<set-variable value="409" doc:name="Http Status" doc:id="ba88c632-21ed-440e-9789-d54389cc62f2" variableName="httpStatus"/>
-					<ee:transform doc:name="Map Error Response" doc:id="f945a532-077c-43b2-a402-daf5c7093d95" >
-						<ee:message >
-							<ee:set-payload ><![CDATA[%dw 2.0
-output application/json skipNullOn="everywhere"
----
-{
-	"success": false,
-	"apiName": p("app.name") default "",
-	"version": p("app.version") default "",
-	"correlation-id": correlationId,
-	"timeStamp": now(),
-	"errorDetails":[{
-		"code": vars.httpStatus default "409",
-		"message": "DUPLICATES_DETECTED",
-		"additionalInfo": "The Post account details is already added the salesforce account. Please check your input details."
-	}]
-}
-]]></ee:set-payload>
-						</ee:message>
-					</ee:transform>
-					<logger level="INFO" doc:name="Log Response" doc:id="56d21799-b5d6-4aa2-ab09-e03be5797d6d" message="Flow name : #[flow.name], CorrelationId : #[correlationId], Account Details Error Response :  #[payload]"/>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9b932084-bbd9-4b2d-9d23-088686208cfc">
+					<flow-ref doc:name="Error_HandlerSub_Flow-conflict" doc:id="da7d6e49-bdf5-417b-86d1-3dab06e43073" name="Error_HandlerSub_Flow-conflict"/>
 				</on-error-propagate>
 			</error-handler>
 		</try>
@@ -171,14 +157,15 @@ output application/json
 		<logger level="INFO" doc:name="Log End Response" doc:id="dedda545-b90f-4fdf-89bc-f91e3b033ef5" message="Flow name : #[flow.name] and CorrelationId : #[correlationId], Map response payload: #[payload]"/>
 		<logger level="INFO" doc:name="Flow End" doc:id="c03d7cdb-fd5c-4e52-8f51-22db1c93ec99" />
 		<error-handler>
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="02494f9c-a19b-48d8-90a7-0cd5c2a8e3f6" type="EXPRESSION">
-				<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="d8555bc4-850e-4db8-bcdc-80a4d1341b87" name="Error_HandlerSub_Flow"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6843c638-bcfd-4829-b8c4-11e2fbda577c" type="EXPRESSION">
+				<flow-ref doc:name="globalError_HandlerSub_Flow" doc:id="74824469-9bfd-4782-893e-b2bac62eb312" name="globalError_HandlerSub_Flow"/>
 			</on-error-propagate>
 		</error-handler>
 	
 </flow>
 	<sub-flow name="request-iso_code_details-subFlow" doc:id="ca5f3212-9d3d-4e49-a42b-0fb1d0f37e91" >
-		<scatter-gather doc:name="Scatter-Gather" doc:id="ea53d399-e202-49b5-9199-1c2b7d19a0f6">
+		<try doc:name="Try" doc:id="4d1f0833-2528-4558-91e4-9b1e5110890d" >
+			<scatter-gather doc:name="Scatter-Gather" doc:id="ea53d399-e202-49b5-9199-1c2b7d19a0f6">
 			<route>
 				<ee:transform doc:name="Billing Address Variable" doc:id="781bc966-6172-4024-a465-6fd14a1b92b2">
 					<ee:message>
@@ -217,6 +204,12 @@ output application/json
 			</route>
 		
 </scatter-gather>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c183aeb0-1be5-4f23-818c-2b11e2256016" >
+					<flow-ref doc:name="Error_HandlerSub_Flow" doc:id="448336da-f823-4f60-8afb-fc9c862eac48" name="Error_HandlerSub_Flow"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
 	
 </sub-flow>
 </mule>

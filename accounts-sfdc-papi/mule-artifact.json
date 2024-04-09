@@ -1,4 +1,3 @@
 {
-  "minMuleVersion": "4.5.0",
-  "secureProperties": ["secure::client.client_id","secure::client.client_secret"]
+  "minMuleVersion": "4.5.0"
 }

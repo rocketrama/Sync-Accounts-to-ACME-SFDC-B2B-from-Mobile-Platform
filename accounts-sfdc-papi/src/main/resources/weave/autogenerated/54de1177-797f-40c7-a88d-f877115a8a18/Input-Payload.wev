@@ -1,0 +1,24 @@
+%dw 2.0
+
+type auto_54de1177_797f_40c7_a88d_f877115a8a18_Input_Payload = {|
+  name: String | Null, 
+  email: String, 
+  number: String, 
+  phone: String | Null, 
+  fax: String | Null, 
+  billingAddress: {|
+    street: String | Null, 
+    city: String | Null, 
+    state: String | Null, 
+    postalCode: String | Null, 
+    countryIso: Any
+  |}, 
+  shippingAddress: {|
+    street: String | Null, 
+    city: String | Null, 
+    state: String | Null, 
+    postalCode: String | Null, 
+    countryIso: Any
+  |}
+|}
+
